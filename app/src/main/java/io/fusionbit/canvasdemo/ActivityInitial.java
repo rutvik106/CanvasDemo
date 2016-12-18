@@ -3,17 +3,27 @@ package io.fusionbit.canvasdemo;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.provider.MediaStore;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Html;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.Calendar;
+
+import io.fusionbit.canvasdemo.api.API;
+import io.fusionbit.canvasdemo.api.RetrofitCallback;
+import io.fusionbit.canvasdemo.apimodels.BlogPost;
+import retrofit2.Call;
+import retrofit2.Response;
 
 public class ActivityInitial extends AppCompatActivity implements View.OnClickListener
 {
@@ -23,6 +33,8 @@ public class ActivityInitial extends AppCompatActivity implements View.OnClickLi
     FrameLayout flContainer;
 
     public static final int WRITE_EXTERNAL_STORAGE = 1324;
+
+    BlogPost blogPost;
 
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -41,6 +53,15 @@ public class ActivityInitial extends AppCompatActivity implements View.OnClickLi
         findViewById(R.id.iv_firstImage).setOnClickListener(this);
         findViewById(R.id.iv_secondImage).setOnClickListener(this);
         findViewById(R.id.iv_clearCanvas).setOnClickListener(this);
+
+        new Handler().postDelayed(new Runnable()
+        {
+            @Override
+            public void run()
+            {
+                getBlogPost();
+            }
+        }, 4000);
 
     }
 
@@ -124,5 +145,52 @@ public class ActivityInitial extends AppCompatActivity implements View.OnClickLi
             return true;
         }
     }
+
+
+    private void getBlogPost()
+    {
+
+
+        final RetrofitCallback<BlogPost> retrofitCallback = new RetrofitCallback<BlogPost>()
+        {
+
+            @Override
+            public void onResponse(Call<BlogPost> call, final Response<BlogPost> response)
+            {
+                super.onResponse(call, response);
+                if (response.isSuccessful())
+                {
+                    Toast.makeText(ActivityInitial.this, "Success", Toast.LENGTH_SHORT).show();
+
+                    blogPost = response.body();
+
+                    Log.i("BLOG", "Author: " + blogPost.getAuthor());
+
+                    runOnUiThread(new Runnable()
+                    {
+                        @Override
+                        public void run()
+                        {
+                            ((TextView) findViewById(R.id.tv_content))
+                                    .setText(Html.fromHtml(response.body().getContent()));
+                        }
+                    });
+
+                }
+
+            }
+
+            @Override
+            public void onFailure(Call<BlogPost> call, Throwable t)
+            {
+                super.onFailure(call, t);
+                Toast.makeText(ActivityInitial.this, "CALL FAILED!!!", Toast.LENGTH_SHORT).show();
+            }
+        };
+
+
+        API.getInstance().getBlogPost("6071227548136096900", retrofitCallback);
+    }
+
 
 }
